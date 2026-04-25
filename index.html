@@ -20,23 +20,24 @@ section {
   padding:20px;
 }
 
-.card {
-  background:#161625;
-  padding:10px;
-  margin:10px 0;
-  border-radius:10px;
-}
-
 input, button {
   padding:10px;
   margin:5px;
 }
+
 button {
   background:#5c6cff;
   border:none;
   color:white;
   border-radius:6px;
   cursor:pointer;
+}
+
+.card {
+  background:#161625;
+  padding:10px;
+  margin:10px 0;
+  border-radius:10px;
 }
 </style>
 </head>
@@ -53,6 +54,13 @@ button {
   <button onclick="login()">Login</button>
 </section>
 
+<!-- USERNAME SETUP -->
+<section id="usernameBox" style="display:none;">
+  <h2>👤 Set Your Username</h2>
+  <input id="username" placeholder="Your Username"><br>
+  <button onclick="saveUsername()">Save Username</button>
+</section>
+
 <!-- MAIN -->
 <section id="main" style="display:none;">
   <h2>📡 Live Feed</h2>
@@ -66,6 +74,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/fireba
 import {
   getFirestore,
   collection,
+  addDoc,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
@@ -86,29 +95,53 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-/* 🔐 LOGIN */
+/* 🧠 LOGIN (FIXED) */
 window.login = async () => {
-  await signInWithEmailAndPassword(auth, email.value, pass.value);
+  try {
+    await signInWithEmailAndPassword(auth, email.value, pass.value);
+  } catch (e) {
+    alert("Login failed: " + e.message);
+  }
 };
 
 /* 🚪 LOGOUT */
 window.logout = () => {
   signOut(auth);
+  localStorage.removeItem("username");
 };
 
-/* 👤 AUTH STATE */
+/* 👤 SAVE USERNAME */
+window.saveUsername = () => {
+  localStorage.setItem("username", username.value);
+  usernameBox.style.display = "none";
+  main.style.display = "block";
+};
+
+/* 🔐 AUTH STATE CONTROL */
 onAuthStateChanged(auth, (user) => {
+
   if (user) {
+
     loginBox.style.display = "none";
-    main.style.display = "block";
+
+    const saved = localStorage.getItem("username");
+
+    if (!saved) {
+      usernameBox.style.display = "block";
+    } else {
+      main.style.display = "block";
+    }
+
   } else {
     loginBox.style.display = "block";
+    usernameBox.style.display = "none";
     main.style.display = "none";
   }
+
 });
 
 /* 📡 LIVE FEED */
-onSnapshot(collection(db,"test"), snap => {
+onSnapshot(collection(db,"messages"), snap => {
 
   let html = "";
 
@@ -118,7 +151,7 @@ onSnapshot(collection(db,"test"), snap => {
     html += `
       <div class="card">
         📄 ${d.message}<br>
-        <small>${new Date(d.time).toLocaleString()}</small>
+        <small>To: ${d.to}</small>
       </div>
     `;
   });
