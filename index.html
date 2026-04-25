@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Voided Studios</title>
+<title>Voided Studios Portal</title>
 
 <style>
 body {
@@ -22,17 +22,26 @@ header {
   padding:10px;
   border-radius:10px;
 }
+button {
+  padding:10px;
+  margin:10px;
+  background:#5c6cff;
+  border:none;
+  color:white;
+  border-radius:6px;
+}
 </style>
 </head>
 
 <body>
 
-<header>🟣 Voided Studios</header>
+<header>🟣 Voided Studios Portal (Local Cache Enabled)</header>
 
-<section>
-<h2>🔔 Notifications</h2>
-<div id="notif"></div>
-</section>
+<button onclick="enableNotifs()">🔔 Enable Notifications</button>
+<button onclick="clearCache()">🧹 Clear Local Cache</button>
+
+<h2 style="padding:10px;">🔔 Notifications</h2>
+<div id="feed"></div>
 
 <script type="module">
 
@@ -52,13 +61,40 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* LIVE NOTIFICATIONS */
-onSnapshot(collection(db,"notifications"), snap => {
+/* 🔔 NOTIFICATIONS PERMISSION */
+window.enableNotifs = () => {
+  Notification.requestPermission();
+};
+
+/* 🧠 LOCAL STORAGE LOAD */
+function loadCache() {
+  const data = JSON.parse(localStorage.getItem("notifications") || "[]");
+  render(data);
+}
+
+/* 💾 SAVE TO LOCAL STORAGE */
+function saveCache(data) {
+  localStorage.setItem("notifications", JSON.stringify(data));
+}
+
+/* 🧹 CLEAR CACHE */
+window.clearCache = () => {
+  localStorage.removeItem("notifications");
+  feed.innerHTML = "";
+};
+
+/* 🪟 WINDOWS POPUP */
+function popup(title, body) {
+  if (Notification.permission === "granted") {
+    new Notification(title, { body });
+  }
+}
+
+/* 🎨 RENDER */
+function render(list) {
   let html = "";
 
-  snap.forEach(d => {
-    const n = d.data();
-
+  list.forEach(n => {
     let icon = "🔔";
     if (n.type === "warning") icon = "⚠️";
     if (n.type === "strike") icon = "🔴";
@@ -72,8 +108,44 @@ onSnapshot(collection(db,"notifications"), snap => {
     `;
   });
 
-  notif.innerHTML = html;
+  feed.innerHTML = html;
+}
+
+/* 🚀 FIREBASE + SYNC */
+onSnapshot(collection(db,"notifications"), snap => {
+
+  let list = [];
+
+  snap.forEach(doc => {
+    const n = doc.data();
+    list.push(n);
+  });
+
+  // 💾 SAVE TO LOCAL STORAGE
+  saveCache(list);
+
+  // 🖥️ RENDER
+  render(list);
+
+  // 🪟 POPUP ONLY FOR NEW ITEMS
+  snap.docChanges().forEach(change => {
+    if (change.type === "added") {
+      const n = change.doc.data();
+
+      let text = "";
+
+      if (n.type === "warning") text = "⚠️ WARNING: " + n.message;
+      if (n.type === "strike") text = "🔴 STRIKE: " + n.message;
+      if (n.type === "promotion") text = "⬆️ PROMOTION: " + n.message;
+
+      popup("Voided Studios", text);
+    }
+  });
+
 });
+
+/* 📦 LOAD CACHE ON START */
+loadCache();
 
 </script>
 
