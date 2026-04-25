@@ -14,7 +14,6 @@ body {
 header {
   background:#151520;
   padding:15px;
-  font-size:18px;
 }
 
 section {
@@ -28,9 +27,11 @@ section {
   border-radius:10px;
 }
 
-button {
+input, button {
   padding:10px;
   margin:5px;
+}
+button {
   background:#5c6cff;
   border:none;
   color:white;
@@ -42,80 +43,72 @@ button {
 
 <body>
 
-<header>
-🟣 Voided Studios — Main Portal
-</header>
+<header>🟣 Voided Studios Portal</header>
 
-<section>
-
-<h2>🔥 Firebase Test Panel</h2>
-
-<button onclick="writeTest()">Write Test Data</button>
-
+<!-- LOGIN -->
+<section id="loginBox">
+  <h2>🔐 Login</h2>
+  <input id="email" placeholder="Email"><br>
+  <input id="pass" type="password" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
 </section>
 
-<section>
-
-<h2>📡 Live Feed (future notifications)</h2>
-<div id="feed">
-No data yet...
-</div>
-
+<!-- MAIN -->
+<section id="main" style="display:none;">
+  <h2>📡 Live Feed</h2>
+  <button onclick="logout()">Logout</button>
+  <div id="feed"></div>
 </section>
 
 <script type="module">
 
-// =========================
-// 🔥 FIREBASE IMPORTS
-// =========================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
   getFirestore,
   collection,
-  addDoc,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-// =========================
-// 🔧 FIREBASE CONFIG
-// =========================
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAJ9-hLzsxyHsnxHNnohbl7uI4gCa8ELjk",
   authDomain: "voided-studios-core.firebaseapp.com",
-  projectId: "voided-studios-core",
-  storageBucket: "voided-studios-core.firebasestorage.app",
-  messagingSenderId: "1018633432201",
-  appId: "1:1018633432201:web:44cbf872afee912516ea58"
+  projectId: "voided-studios-core"
 };
 
-// =========================
-// 🚀 INIT
-// =========================
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// =========================
-// 🧪 TEST WRITE FUNCTION
-// =========================
-window.writeTest = async () => {
-  await addDoc(collection(db, "test"), {
-    message: "Voided Studios connected!",
-    time: Date.now()
-  });
-
-  alert("Saved to Firestore!");
+/* 🔐 LOGIN */
+window.login = async () => {
+  await signInWithEmailAndPassword(auth, email.value, pass.value);
 };
 
-// =========================
-// 📡 LIVE LISTENER (READY)
-// =========================
-// This will be used later for:
-// - warnings
-// - strikes
-// - promotions
-// - notifications
+/* 🚪 LOGOUT */
+window.logout = () => {
+  signOut(auth);
+};
 
-onSnapshot(collection(db, "test"), (snap) => {
+/* 👤 AUTH STATE */
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    loginBox.style.display = "none";
+    main.style.display = "block";
+  } else {
+    loginBox.style.display = "block";
+    main.style.display = "none";
+  }
+});
+
+/* 📡 LIVE FEED */
+onSnapshot(collection(db,"test"), snap => {
 
   let html = "";
 
@@ -131,7 +124,6 @@ onSnapshot(collection(db, "test"), (snap) => {
   });
 
   feed.innerHTML = html;
-
 });
 
 </script>
