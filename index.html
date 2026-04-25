@@ -6,7 +6,7 @@
 <style>
 body {
   margin:0;
-  font-family:Arial;
+  font-family: Arial;
   background:#0b0b12;
   color:white;
 }
@@ -14,138 +14,125 @@ body {
 header {
   background:#151520;
   padding:15px;
+  font-size:18px;
+}
+
+section {
+  padding:20px;
 }
 
 .card {
   background:#161625;
-  margin:10px;
   padding:10px;
+  margin:10px 0;
   border-radius:10px;
 }
+
 button {
   padding:10px;
-  margin:10px;
+  margin:5px;
   background:#5c6cff;
   border:none;
   color:white;
   border-radius:6px;
+  cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<header>🟣 Voided Studios Portal (Local Cache Enabled)</header>
+<header>
+🟣 Voided Studios — Main Portal
+</header>
 
-<button onclick="enableNotifs()">🔔 Enable Notifications</button>
-<button onclick="clearCache()">🧹 Clear Local Cache</button>
+<section>
 
-<h2 style="padding:10px;">🔔 Notifications</h2>
-<div id="feed"></div>
+<h2>🔥 Firebase Test Panel</h2>
+
+<button onclick="writeTest()">Write Test Data</button>
+
+</section>
+
+<section>
+
+<h2>📡 Live Feed (future notifications)</h2>
+<div id="feed">
+No data yet...
+</div>
+
+</section>
 
 <script type="module">
 
+// =========================
+// 🔥 FIREBASE IMPORTS
+// =========================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
   getFirestore,
   collection,
+  addDoc,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+// =========================
+// 🔧 FIREBASE CONFIG
+// =========================
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "voidedstudios-admin.firebaseapp.com",
-  projectId: "voidedstudios-admin"
+  apiKey: "AIzaSyAJ9-hLzsxyHsnxHNnohbl7uI4gCa8ELjk",
+  authDomain: "voided-studios-core.firebaseapp.com",
+  projectId: "voided-studios-core",
+  storageBucket: "voided-studios-core.firebasestorage.app",
+  messagingSenderId: "1018633432201",
+  appId: "1:1018633432201:web:44cbf872afee912516ea58"
 };
 
+// =========================
+// 🚀 INIT
+// =========================
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* 🔔 NOTIFICATIONS PERMISSION */
-window.enableNotifs = () => {
-  Notification.requestPermission();
+// =========================
+// 🧪 TEST WRITE FUNCTION
+// =========================
+window.writeTest = async () => {
+  await addDoc(collection(db, "test"), {
+    message: "Voided Studios connected!",
+    time: Date.now()
+  });
+
+  alert("Saved to Firestore!");
 };
 
-/* 🧠 LOCAL STORAGE LOAD */
-function loadCache() {
-  const data = JSON.parse(localStorage.getItem("notifications") || "[]");
-  render(data);
-}
+// =========================
+// 📡 LIVE LISTENER (READY)
+// =========================
+// This will be used later for:
+// - warnings
+// - strikes
+// - promotions
+// - notifications
 
-/* 💾 SAVE TO LOCAL STORAGE */
-function saveCache(data) {
-  localStorage.setItem("notifications", JSON.stringify(data));
-}
+onSnapshot(collection(db, "test"), (snap) => {
 
-/* 🧹 CLEAR CACHE */
-window.clearCache = () => {
-  localStorage.removeItem("notifications");
-  feed.innerHTML = "";
-};
-
-/* 🪟 WINDOWS POPUP */
-function popup(title, body) {
-  if (Notification.permission === "granted") {
-    new Notification(title, { body });
-  }
-}
-
-/* 🎨 RENDER */
-function render(list) {
   let html = "";
 
-  list.forEach(n => {
-    let icon = "🔔";
-    if (n.type === "warning") icon = "⚠️";
-    if (n.type === "strike") icon = "🔴";
-    if (n.type === "promotion") icon = "⬆️";
+  snap.forEach(doc => {
+    const d = doc.data();
 
     html += `
       <div class="card">
-        ${icon} <b>${n.name}</b><br>
-        ${n.message}
+        📄 ${d.message}<br>
+        <small>${new Date(d.time).toLocaleString()}</small>
       </div>
     `;
   });
 
   feed.innerHTML = html;
-}
-
-/* 🚀 FIREBASE + SYNC */
-onSnapshot(collection(db,"notifications"), snap => {
-
-  let list = [];
-
-  snap.forEach(doc => {
-    const n = doc.data();
-    list.push(n);
-  });
-
-  // 💾 SAVE TO LOCAL STORAGE
-  saveCache(list);
-
-  // 🖥️ RENDER
-  render(list);
-
-  // 🪟 POPUP ONLY FOR NEW ITEMS
-  snap.docChanges().forEach(change => {
-    if (change.type === "added") {
-      const n = change.doc.data();
-
-      let text = "";
-
-      if (n.type === "warning") text = "⚠️ WARNING: " + n.message;
-      if (n.type === "strike") text = "🔴 STRIKE: " + n.message;
-      if (n.type === "promotion") text = "⬆️ PROMOTION: " + n.message;
-
-      popup("Voided Studios", text);
-    }
-  });
 
 });
-
-/* 📦 LOAD CACHE ON START */
-loadCache();
 
 </script>
 
